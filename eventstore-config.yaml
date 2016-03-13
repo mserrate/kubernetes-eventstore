@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: eventstore-ext
+  labels: 
+    name: eventstore-ext
+spec: 
+  ports: 
+    - name: ext-http
+      protocol: TCP
+      port: 2113
+      targetPort: 2113
+  selector: 
+    app: eventstore
+  type: LoadBalancer     
+#   externalIPs:
+#     - 172.17.4.101  
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: eventstore
+  labels: 
+    name: eventstore
+spec: 
+  ports: 
+    - name: ext-http
+      protocol: TCP
+      port: 2113
+      targetPort: 2113
+    - name: ext-tcp
+      protocol: TCP
+      port: 1113
+      targetPort: 1113 
+    - name: int-http
+      protocol: TCP
+      port: 2112
+      targetPort: 2112
+    - name: int-tcp
+      protocol: TCP
+      port: 1112
+      targetPort: 1112          
+  selector: 
+    app: eventstore
+  clusterIP: None  
+---
+apiVersion: v1
+kind: ReplicationController
+metadata: 
+  name: eventstore-controller
+spec: 
+  replicas: 3
+  selector:
+    app: eventstore
+  template:
+    metadata: 
+      labels: 
+        app: eventstore
+    spec: 
+      containers: 
+        - name: eventstore
+          image: mserrate/eventstore
+          ports: 
+            - containerPort: 2113
+              protocol: TCP
+            - containerPort: 1113
+              protocol: TCP
+            - containerPort: 2112
+              protocol: TCP
+            - containerPort: 1112
+              protocol: TCP                                                                 
+          volumeMounts:
+            - name: db
+              mountPath: /data
+      volumes:
+        - name: db
+          emptyDir: {}
+      restartPolicy: Always
